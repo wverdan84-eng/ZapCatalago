@@ -43,7 +43,6 @@ export const Config: React.FC = () => {
     const data = await getItem<StoreConfig>('store_config');
     if (data) setConfig({ ...config, ...data });
     
-    // Load products only to generate the correct link
     const products = await getItem<Product[]>('store_products') || [];
     
     if (data) {
@@ -68,7 +67,6 @@ export const Config: React.FC = () => {
     setLoading(true);
     await setItem('store_config', config);
     
-    // Update link logic
     const products = await getItem<Product[]>('store_products') || [];
     updateShareLink(config, products);
 
@@ -76,10 +74,10 @@ export const Config: React.FC = () => {
     setSaved(true);
 
     if (isSetupMode) {
-      // If in setup mode, redirect to Products manager after saving
+      // Small delay so user sees "Saved!" before redirecting
       setTimeout(() => {
         navigate('/dashboard/products');
-      }, 1000);
+      }, 1500);
     } else {
       setTimeout(() => setSaved(false), 3000);
     }
@@ -126,26 +124,17 @@ export const Config: React.FC = () => {
     alert('Link copiado!');
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: config.storeName,
-        text: 'Acesse meu catálogo online:',
-        url: storeLink,
-      });
-    } else {
-      handleCopyLink();
-    }
-  };
-
   return (
-    <Layout hideNav={isSetupMode} title={isSetupMode ? "Vamos criar sua Loja" : "Configurações"}>
+    <Layout hideNav={isSetupMode} title={isSetupMode ? "Criar Minha Loja" : "Configurações"}>
       <div className="space-y-6 mb-24">
         
         {isSetupMode && (
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-blue-800 text-sm mb-4 leading-relaxed">
-            <strong>Bem-vindo!</strong> Para começar, configure os detalhes da sua loja abaixo. 
-            Você só precisa fazer isso uma vez. Depois, vamos adicionar seus produtos.
+          <div className="bg-brand-50 border border-brand-100 p-5 rounded-xl text-brand-900 text-sm mb-4 leading-relaxed shadow-sm">
+            <h3 className="font-bold text-brand-700 text-lg mb-1">Bem-vindo(a)! 👋</h3>
+            <p className="text-brand-800">
+                Preencha os dados abaixo para ativar sua loja. 
+                Isso é feito apenas uma vez. Depois, você poderá cadastrar seus produtos.
+            </p>
           </div>
         )}
 

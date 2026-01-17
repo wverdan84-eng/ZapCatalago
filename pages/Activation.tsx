@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CheckCircle, Store, Mail, Key, AlertOctagon, HelpCircle, ArrowRight } from 'lucide-react';
+import { Store, Mail, Key, AlertOctagon, HelpCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { verifyLicense } from '../lib/security';
 import { getItem } from '../lib/storage';
 
@@ -12,16 +12,24 @@ export const Activation: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if user is already logged in securely
     checkExistingLicense();
   }, []);
 
   const routeUser = async () => {
-    // Check if store is already configured
-    const config = await getItem('store_config');
-    if (config) {
-        navigate('/dashboard');
-    } else {
-        // First time setup!
+    try {
+        // Critical Check: Does the store have configuration?
+        const config = await getItem('store_config');
+        
+        if (config) {
+            // Store exists -> Go to Dashboard
+            navigate('/dashboard');
+        } else {
+            // Store is new -> Go to Setup Wizard
+            navigate('/dashboard/config?setup=true');
+        }
+    } catch (e) {
+        // Fallback if DB fails
         navigate('/dashboard/config?setup=true');
     }
   };
@@ -67,54 +75,54 @@ export const Activation: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-600 to-brand-800 flex flex-col items-center justify-center p-6 text-white font-sans">
-      <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-gray-100">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white font-sans">
+      <div className="bg-slate-800 text-gray-100 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-700">
         <div className="flex justify-center mb-6">
-          <div className="bg-brand-50 p-4 rounded-2xl shadow-inner rotate-3 hover:rotate-0 transition-transform duration-300">
-            <Store className="w-10 h-10 text-brand-600" />
+          <div className="bg-emerald-500/10 p-4 rounded-2xl shadow-inner border border-emerald-500/20">
+            <Store className="w-10 h-10 text-emerald-500" />
           </div>
         </div>
         
-        <h1 className="text-2xl font-extrabold text-center mb-1 text-gray-900 tracking-tight">Login do Lojista</h1>
-        <p className="text-gray-500 text-center mb-8 text-sm font-medium">
-          Acesse para gerenciar sua loja
+        <h1 className="text-2xl font-extrabold text-center mb-1 text-white tracking-tight">Painel do Lojista</h1>
+        <p className="text-slate-400 text-center mb-8 text-sm font-medium">
+          Gerencie sua loja e produtos
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">E-mail</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">E-mail de Acesso</label>
             <div className="relative group">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="w-full pl-10 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-gray-50 focus:bg-white transition-all group-hover:border-brand-300"
+                className="w-full pl-10 pr-4 py-3.5 bg-slate-900 border border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all group-hover:border-slate-500"
               />
-              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-3.5 group-focus-within:text-brand-500 transition-colors" />
+              <Mail className="w-5 h-5 text-slate-500 absolute left-3 top-3.5 group-focus-within:text-emerald-500 transition-colors" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Chave de Acesso</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Chave da Licença</label>
             <div className="relative group">
               <input
                 type="text"
                 value={licenseKey}
                 onChange={(e) => setLicenseKey(e.target.value)}
                 placeholder="XXXX-XXXXXXXXXXXX"
-                className="w-full pl-10 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-mono uppercase bg-gray-50 focus:bg-white transition-all group-hover:border-brand-300 text-sm"
+                className="w-full pl-10 pr-4 py-3.5 bg-slate-900 border border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono uppercase text-white transition-all group-hover:border-slate-500 text-sm"
               />
-              <Key className="w-5 h-5 text-gray-400 absolute left-3 top-3.5 group-focus-within:text-brand-500 transition-colors" />
+              <Key className="w-5 h-5 text-slate-500 absolute left-3 top-3.5 group-focus-within:text-emerald-500 transition-colors" />
             </div>
-            <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1.5 px-1">
-              <HelpCircle size={12} />
-              Enviada para seu e-mail após a compra.
+            <p className="text-[10px] text-slate-500 mt-2 flex items-center gap-1.5 px-1">
+              <ShieldCheck size={12} />
+              Ambiente Seguro e Criptografado
             </p>
           </div>
           
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold flex items-center gap-2 border border-red-100 animate-shake">
+            <div className="bg-red-900/20 text-red-400 p-3 rounded-xl text-xs font-bold flex items-center gap-2 border border-red-500/20 animate-shake">
               <AlertOctagon size={16} className="flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -123,19 +131,19 @@ export const Activation: React.FC = () => {
           <button
             onClick={handleActivate}
             disabled={loading}
-            className="w-full mt-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-200 transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-[0.98]"
+            className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/50 transition-all flex justify-center items-center gap-2 disabled:opacity-70 active:scale-[0.98]"
           >
             {loading ? 'Validando...' : (
               <>
-                Acessar Painel <ArrowRight size={18} />
+                Entrar na Loja <ArrowRight size={18} />
               </>
             )}
           </button>
         </div>
 
-        <div className="mt-8 border-t pt-6 text-center">
-          <Link to="/admin-master" className="text-[10px] text-gray-400 hover:text-brand-600 transition-colors uppercase tracking-widest font-bold">
-            Acesso Administrativo
+        <div className="mt-8 border-t border-slate-700 pt-6 text-center">
+          <Link to="/admin-master" className="text-[10px] text-slate-500 hover:text-emerald-400 transition-colors uppercase tracking-widest font-bold">
+            Sou Administrador
           </Link>
         </div>
       </div>

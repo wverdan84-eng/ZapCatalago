@@ -12,16 +12,14 @@ export const generateStoreLink = (data: StoreData): string => {
   const compressed = LZString.compressToEncodedURIComponent(jsonString);
   
   // 3. Construct URL robustly
-  // We use the URL object to strip existing hash/search and ensure a clean base
-  const url = new URL(window.location.href);
-  url.hash = '';
-  url.search = '';
+  // We use the origin + pathname to ensure we don't duplicate hashes
+  const baseUrl = window.location.origin + window.location.pathname;
   
-  // Remove trailing slash from base to avoid double slashes (e.g. .com//)
-  const baseUrl = url.toString().replace(/\/$/, '');
+  // Ensure we don't have trailing slashes that break the hash
+  const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   
-  // Force the /#/c format which is standard for HashRouter
-  return `${baseUrl}/#/c?d=${compressed}`;
+  // Force the /#/c format which is standard for HashRouter in this app
+  return `${cleanBase}/#/c?d=${compressed}`;
 };
 
 export const decodeStoreData = (compressedString: string): StoreData | null => {
