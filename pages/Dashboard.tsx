@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Share2, Download, ExternalLink, AlertTriangle, CheckCircle, Package, Settings, ChevronRight } from 'lucide-react';
+import { Share2, Download, ExternalLink, AlertTriangle, CheckCircle, Package, Settings, Copy, Link as LinkIcon, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Product, StoreConfig } from '../types';
@@ -12,6 +12,7 @@ export const Dashboard: React.FC = () => {
   const [config, setConfig] = useState<StoreConfig | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const qrRef = useRef<SVGSVGElement>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -56,6 +57,12 @@ export const Dashboard: React.FC = () => {
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(storeLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -64,8 +71,7 @@ export const Dashboard: React.FC = () => {
         url: storeLink,
       });
     } else {
-      navigator.clipboard.writeText(storeLink);
-      alert('Link copiado!');
+      handleCopyLink();
     }
   };
 
@@ -152,13 +158,28 @@ export const Dashboard: React.FC = () => {
 
       {/* Main Action: Share */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center mb-6">
-        <h3 className="font-bold text-gray-800 mb-2">Link da Loja para Clientes</h3>
-        <p className="text-xs text-gray-400 mb-6">Envie este link ou QR Code para seus clientes realizarem pedidos.</p>
+        <h3 className="font-bold text-gray-800 mb-2">Link da Loja</h3>
+        <p className="text-xs text-gray-400 mb-6">Compartilhe este link com seus clientes</p>
         
+        {/* URL Input Box */}
+        <div className="w-full bg-gray-50 border border-gray-200 rounded-xl flex items-center p-2 mb-6 text-left hover:border-brand-400 transition cursor-pointer group" onClick={handleCopyLink}>
+            <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-brand-600 group-hover:text-brand-700">
+                <LinkIcon size={18} />
+            </div>
+            <div className="flex-1 min-w-0 px-3">
+                <p className="text-[10px] text-gray-400 font-bold uppercase">Copiar Link</p>
+                <p className="text-sm font-medium text-gray-700 truncate">{storeLink}</p>
+            </div>
+            <div className="text-gray-400 pr-2 group-hover:text-brand-600">
+                {copied ? <CheckCircle size={20} className="text-green-500" /> : <Copy size={20} />}
+            </div>
+        </div>
+
+        {/* QRCode Box */}
         <div className="bg-white p-3 rounded-xl shadow-inner border border-gray-100 mb-6">
           <QRCodeSVG
             value={storeLink}
-            size={180}
+            size={160}
             level={"M"}
             includeMargin={true}
             ref={qrRef}
@@ -202,9 +223,10 @@ export const Dashboard: React.FC = () => {
         href={storeLink} 
         target="_blank" 
         rel="noreferrer"
-        className="mt-8 block text-center text-gray-400 text-xs hover:text-brand-600 transition flex items-center justify-center gap-1 pb-4"
+        className="mt-8 mb-4 block text-center bg-gray-800 text-white py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-900 transition flex items-center justify-center gap-2"
       >
-        Simular acesso do cliente <ExternalLink size={10} />
+        <Eye size={18} />
+        Ver Loja como Cliente
       </a>
     </Layout>
   );
