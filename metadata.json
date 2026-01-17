@@ -1,0 +1,5 @@
+{
+  "name": "ZapCatalog - Catálogo Digital Offline",
+  "description": "PWA Zero-Backend para criação de catálogos digitais via QR Code. Funciona 100% offline com persistência IndexedDB.",
+  "requestFramePermissions": []
+}
