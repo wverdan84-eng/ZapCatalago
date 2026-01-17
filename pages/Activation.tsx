@@ -30,6 +30,7 @@ export const Activation: React.FC = () => {
         }
     } catch (e) {
         // Fallback if DB fails
+        console.error("Routing error:", e);
         navigate('/dashboard/config?setup=true');
     }
   };

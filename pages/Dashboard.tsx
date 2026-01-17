@@ -11,6 +11,7 @@ export const Dashboard: React.FC = () => {
   const [storeLink, setStoreLink] = useState('');
   const [config, setConfig] = useState<StoreConfig | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true); // Add loading state
   const qrRef = useRef<SVGSVGElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -19,18 +20,28 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const loadData = async () => {
-    const loadedConfig = await getItem<StoreConfig>('store_config');
-    const loadedProducts = await getItem<Product[]>('store_products') || [];
-    
-    setConfig(loadedConfig || null);
-    setProducts(loadedProducts);
+    try {
+      const loadedConfig = await getItem<StoreConfig>('store_config');
+      const loadedProducts = await getItem<Product[]>('store_products') || [];
+      
+      setConfig(loadedConfig || null);
+      setProducts(loadedProducts);
 
-    if (loadedConfig) {
-      const link = generateStoreLink({
-        config: loadedConfig,
-        products: loadedProducts
-      });
-      setStoreLink(link);
+      if (loadedConfig) {
+        try {
+            const link = generateStoreLink({
+                config: loadedConfig,
+                products: loadedProducts
+            });
+            setStoreLink(link);
+        } catch (err) {
+            console.error("Error generating link:", err);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load dashboard data", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,32 +49,38 @@ export const Dashboard: React.FC = () => {
     const svg = qrRef.current;
     if (!svg) return;
     
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-      const pngFile = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.download = `QRCode-${config?.storeName || 'Loja'}.png`;
-      downloadLink.href = pngFile;
-      downloadLink.click();
-    };
-    
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    try {
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          const pngFile = canvas.toDataURL("image/png");
+          const downloadLink = document.createElement("a");
+          downloadLink.download = `QRCode-${config?.storeName || 'Loja'}.png`;
+          downloadLink.href = pngFile;
+          downloadLink.click();
+        };
+        
+        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    } catch (e) {
+        alert("Erro ao baixar QR Code. Tente tirar um print.");
+    }
   };
 
   const handleCopyLink = () => {
+    if (!storeLink) return;
     navigator.clipboard.writeText(storeLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = () => {
+    if (!storeLink) return;
     if (navigator.share) {
       navigator.share({
         title: config?.storeName,
@@ -74,6 +91,17 @@ export const Dashboard: React.FC = () => {
       handleCopyLink();
     }
   };
+
+  // Loading State
+  if (loading) {
+    return (
+        <Layout>
+            <div className="flex items-center justify-center min-h-[50vh]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+            </div>
+        </Layout>
+    );
+  }
 
   // ESTADO 1: Loja não configurada
   if (!config || !config.storeName || !config.phone) {
@@ -137,9 +165,11 @@ export const Dashboard: React.FC = () => {
               <p className="opacity-80 text-xs font-bold uppercase tracking-wider mb-1">Loja Ativa</p>
               <h2 className="text-3xl font-bold">{config.storeName}</h2>
             </div>
-            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-               <QRCodeSVG value={storeLink} size={40} level="L" fgColor="#ffffff" bgColor="transparent" />
-            </div>
+            {storeLink && (
+                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                    <QRCodeSVG value={storeLink} size={40} level="L" fgColor="#ffffff" bgColor="transparent" />
+                </div>
+            )}
           </div>
           
           <div className="mt-6 flex items-center gap-3">
@@ -162,40 +192,48 @@ export const Dashboard: React.FC = () => {
         <p className="text-xs text-gray-400 mb-6">Compartilhe este link com seus clientes</p>
         
         {/* URL Input Box */}
-        <div className="w-full bg-gray-50 border border-gray-200 rounded-xl flex items-center p-2 mb-6 text-left hover:border-brand-400 transition cursor-pointer group" onClick={handleCopyLink}>
-            <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-brand-600 group-hover:text-brand-700">
-                <LinkIcon size={18} />
+        {storeLink ? (
+            <div className="w-full bg-gray-50 border border-gray-200 rounded-xl flex items-center p-2 mb-6 text-left hover:border-brand-400 transition cursor-pointer group" onClick={handleCopyLink}>
+                <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-brand-600 group-hover:text-brand-700">
+                    <LinkIcon size={18} />
+                </div>
+                <div className="flex-1 min-w-0 px-3">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">Copiar Link</p>
+                    <p className="text-sm font-medium text-gray-700 truncate">{storeLink}</p>
+                </div>
+                <div className="text-gray-400 pr-2 group-hover:text-brand-600">
+                    {copied ? <CheckCircle size={20} className="text-green-500" /> : <Copy size={20} />}
+                </div>
             </div>
-            <div className="flex-1 min-w-0 px-3">
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Copiar Link</p>
-                <p className="text-sm font-medium text-gray-700 truncate">{storeLink}</p>
-            </div>
-            <div className="text-gray-400 pr-2 group-hover:text-brand-600">
-                {copied ? <CheckCircle size={20} className="text-green-500" /> : <Copy size={20} />}
-            </div>
-        </div>
+        ) : (
+            <div className="mb-6 text-red-500 text-sm">Erro ao gerar link. Verifique as configurações.</div>
+        )}
 
         {/* QRCode Box */}
-        <div className="bg-white p-3 rounded-xl shadow-inner border border-gray-100 mb-6">
-          <QRCodeSVG
-            value={storeLink}
-            size={160}
-            level={"M"}
-            includeMargin={true}
-            ref={qrRef}
-          />
-        </div>
+        {storeLink && (
+            <div className="bg-white p-3 rounded-xl shadow-inner border border-gray-100 mb-6">
+            <QRCodeSVG
+                value={storeLink}
+                size={160}
+                level={"M"}
+                includeMargin={true}
+                ref={qrRef}
+            />
+            </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 w-full">
           <button 
             onClick={handleDownloadQR}
-            className="flex items-center justify-center gap-2 bg-gray-50 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition border border-gray-200 text-sm"
+            disabled={!storeLink}
+            className="flex items-center justify-center gap-2 bg-gray-50 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition border border-gray-200 text-sm disabled:opacity-50"
           >
             <Download size={16} /> Baixar QR
           </button>
           <button 
             onClick={handleShare}
-            className="flex items-center justify-center gap-2 bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-200 text-sm"
+            disabled={!storeLink}
+            className="flex items-center justify-center gap-2 bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-200 text-sm disabled:opacity-50"
           >
             <Share2 size={16} /> Enviar Link
           </button>
@@ -219,15 +257,17 @@ export const Dashboard: React.FC = () => {
          </Link>
       </div>
 
-      <a 
-        href={storeLink} 
-        target="_blank" 
-        rel="noreferrer"
-        className="mt-8 mb-4 block text-center bg-gray-800 text-white py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-900 transition flex items-center justify-center gap-2"
-      >
-        <Eye size={18} />
-        Ver Loja como Cliente
-      </a>
+      {storeLink && (
+        <a 
+            href={storeLink} 
+            target="_blank" 
+            rel="noreferrer"
+            className="mt-8 mb-4 block text-center bg-gray-800 text-white py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-900 transition flex items-center justify-center gap-2"
+        >
+            <Eye size={18} />
+            Ver Loja como Cliente
+        </a>
+      )}
     </Layout>
   );
 };
