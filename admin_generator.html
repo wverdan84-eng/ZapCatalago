@@ -11,24 +11,39 @@
 
         async function generateKey() {
             const email = document.getElementById('email').value.trim().toLowerCase();
+            const daysValid = parseInt(document.getElementById('days').value);
+
             if (!email) {
                 alert('Digite um e-mail');
                 return;
             }
 
+            // Lógica idêntica ao lib/security.ts
+            const expirationDate = Date.now() + (daysValid * 24 * 60 * 60 * 1000);
+            const expirationHex = expirationDate.toString(16); // Lowercase hex
+
             const encoder = new TextEncoder();
-            const data = encoder.encode(email + SECRET_SALT);
+            // Data string: email|hex|salt
+            const dataString = `${email}|${expirationHex}|${SECRET_SALT}`;
+            const data = encoder.encode(dataString);
+            
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            const key = hashHex.substring(0, 16); // Pegamos os primeiros 16 caracteres
+            
+            // Output Uppercase
+            const key = `${expirationHex}-${hashHex.substring(0, 12)}`.toUpperCase();
 
             document.getElementById('result').classList.remove('hidden');
             document.getElementById('licenseKey').value = key;
             document.getElementById('emailDisplay').innerText = email;
             
+            // Format Exp Date for humans
+            const expDateObj = new Date(expirationDate);
+            const dateStr = expDateObj.toLocaleDateString('pt-BR');
+
             // Generate Copy text
-            const msg = `Olá!\n\nObrigado por comprar o ZapCatalog.\n\nSeus dados de acesso:\nE-mail: ${email}\nChave: ${key}\n\nAcesse em: https://seusite.com`;
+            const msg = `Olá!\n\nSeu acesso ao ZapCatalog foi liberado.\n\n📧 Login: ${email}\n🔑 Chave: ${key}\n📅 Validade: ${dateStr}\n\nAcesse agora: https://zap-catalogo.vercel.app`;
             document.getElementById('copyText').value = msg;
         }
 
@@ -43,22 +58,37 @@
 </head>
 <body class="bg-slate-800 text-white min-h-screen flex items-center justify-center p-4">
     <div class="bg-slate-900 p-8 rounded-2xl shadow-xl max-w-md w-full border border-slate-700">
-        <h1 class="text-2xl font-bold mb-6 text-emerald-400">Gerador Admin (Uso Interno)</h1>
+        <h1 class="text-2xl font-bold mb-6 text-emerald-400 flex items-center gap-2">
+            <span>⚙️</span> Gerador Admin (Offline)
+        </h1>
         
-        <div class="mb-6">
-            <label class="block text-sm text-slate-400 mb-2">E-mail do Comprador (Hotmart)</label>
-            <input type="email" id="email" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-emerald-500 outline-none" placeholder="cliente@email.com">
+        <div class="space-y-4 mb-6">
+            <div>
+                <label class="block text-sm text-slate-400 mb-2">E-mail do Comprador</label>
+                <input type="email" id="email" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-emerald-500 outline-none" placeholder="cliente@email.com">
+            </div>
+            
+            <div>
+                <label class="block text-sm text-slate-400 mb-2">Período de Acesso</label>
+                <select id="days" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-emerald-500 outline-none">
+                    <option value="30">30 Dias (Mensal)</option>
+                    <option value="180">6 Meses (Semestral)</option>
+                    <option value="365" selected>1 Ano (Anual)</option>
+                    <option value="730">2 Anos</option>
+                    <option value="36500">Vitalício (100 Anos)</option>
+                </select>
+            </div>
         </div>
 
-        <button onclick="generateKey()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded transition">
+        <button onclick="generateKey()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded transition shadow-lg">
             Gerar Licença
         </button>
 
-        <div id="result" class="hidden mt-8 pt-8 border-t border-slate-700">
-            <p class="text-sm text-slate-400 mb-1">Chave gerada para: <span id="emailDisplay" class="text-white font-bold"></span></p>
-            <input type="text" id="licenseKey" readonly class="w-full bg-black text-emerald-400 font-mono text-xl p-3 rounded mb-4 text-center tracking-widest border border-emerald-900">
+        <div id="result" class="hidden mt-8 pt-8 border-t border-slate-700 animate-pulse-once">
+            <p class="text-sm text-slate-400 mb-1">Chave para: <span id="emailDisplay" class="text-white font-bold"></span></p>
+            <input type="text" id="licenseKey" readonly class="w-full bg-black text-emerald-400 font-mono text-xl p-3 rounded mb-4 text-center tracking-widest border border-emerald-900 select-all">
             
-            <label class="block text-sm text-slate-400 mb-2">Mensagem Pronta para Envio:</label>
+            <label class="block text-sm text-slate-400 mb-2">Mensagem Pronta:</label>
             <textarea id="copyText" rows="6" class="w-full bg-slate-800 text-xs text-slate-300 p-3 rounded mb-2 font-mono"></textarea>
             
             <button onclick="copyToClipboard()" class="w-full bg-slate-700 hover:bg-slate-600 text-sm py-2 rounded">
@@ -66,8 +96,8 @@
             </button>
         </div>
         
-        <p class="mt-6 text-xs text-center text-slate-500">
-            Mantenha o SECRET_SALT seguro. Não compartilhe este arquivo HTML.
+        <p class="mt-6 text-[10px] text-center text-slate-500">
+            Nota: Este arquivo gera chaves compatíveis com a versão 2.0 do ZapCatalog (com expiração).
         </p>
     </div>
 </body>

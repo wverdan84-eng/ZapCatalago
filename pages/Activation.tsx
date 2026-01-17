@@ -34,20 +34,24 @@ export const Activation: React.FC = () => {
     setError('');
     setLoading(true);
 
-    if (!email.includes('@') || licenseKey.length < 5) {
-      setError('Dados inválidos.');
+    const cleanEmail = email.trim();
+    const cleanKey = licenseKey.trim();
+
+    if (!cleanEmail.includes('@') || cleanKey.length < 5) {
+      setError('Por favor, verifique os dados informados.');
       setLoading(false);
       return;
     }
 
-    const result = await verifyLicense(email, licenseKey);
+    // Verify
+    const result = await verifyLicense(cleanEmail, cleanKey);
 
     if (result.valid) {
-      localStorage.setItem('zapcatalog_license', licenseKey);
-      localStorage.setItem('merchant_email', email);
+      localStorage.setItem('zapcatalog_license', cleanKey);
+      localStorage.setItem('merchant_email', cleanEmail);
       navigate('/dashboard');
     } else {
-      setError(result.message || 'Chave inválida.');
+      setError(result.message || 'Chave inválida ou e-mail incorreto.');
     }
     setLoading(false);
   };
