@@ -6,17 +6,22 @@ import { StoreData } from '../types';
 
 export const generateStoreLink = (data: StoreData): string => {
   // 1. Minify data to save space (map to array)
-  // Format: [version, config, products]
-  // This is a simplified version. In prod, you map keys to shorter chars.
   const jsonString = JSON.stringify(data);
   
   // 2. Compress
   const compressed = LZString.compressToEncodedURIComponent(jsonString);
   
-  // 3. Construct URL
-  // In a real app, this would be your domain. Here we use the current host.
-  const baseUrl = window.location.origin + window.location.pathname;
-  return `${baseUrl}#/c?d=${compressed}`;
+  // 3. Construct URL robustly
+  // We use the URL object to strip existing hash/search and ensure a clean base
+  const url = new URL(window.location.href);
+  url.hash = '';
+  url.search = '';
+  
+  // Remove trailing slash from base to avoid double slashes (e.g. .com//)
+  const baseUrl = url.toString().replace(/\/$/, '');
+  
+  // Force the /#/c format which is standard for HashRouter
+  return `${baseUrl}/#/c?d=${compressed}`;
 };
 
 export const decodeStoreData = (compressedString: string): StoreData | null => {

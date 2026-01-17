@@ -17,21 +17,20 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <Routes>
+        {/* PUBLIC CUSTOMER ROUTE - HIGHEST PRIORITY */}
+        {/* Placed first to ensure it matches before any catch-all or default redirects */}
+        <Route path="/c" element={<CustomerCatalog />} />
+
         {/* Merchant Routes */}
         <Route path="/" element={<Activation />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/dashboard/products" element={<ProtectedRoute><ProductManager /></ProtectedRoute>} />
         <Route path="/dashboard/config" element={<ProtectedRoute><Config /></ProtectedRoute>} />
 
-        {/* Public Customer Route */}
-        {/* URL will look like: mysite.com/#/c?d=compressed_data */}
-        <Route path="/c" element={<CustomerCatalog />} />
-
         {/* SECRET ADMIN ROUTE */}
-        {/* Access this URL to generate keys: yoursite.com/#/admin-master */}
         <Route path="/admin-master" element={<AdminMaster />} />
         
-        {/* Fallback */}
+        {/* Fallback - Redirects to Home (which redirects to Dashboard if logged in) */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>
