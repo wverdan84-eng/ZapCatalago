@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Lock, CheckCircle, Smartphone, Mail, Key } from 'lucide-react';
 import { verifyLicense } from '../lib/security';
 
@@ -112,6 +112,11 @@ export const Activation: React.FC = () => {
           <p className="text-xs text-center text-gray-400">
             Dúvidas? Entre em contato com o suporte informando seu e-mail de compra.
           </p>
+          <div className="mt-6 flex justify-center">
+            <Link to="/admin-master" className="text-[10px] text-gray-300 hover:text-brand-600 transition-colors uppercase tracking-widest font-bold">
+              Área Administrativa
+            </Link>
+          </div>
         </div>
       </div>
     </div>
