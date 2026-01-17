@@ -1,7 +1,9 @@
 // SECURITY CONFIGURATION
 // WARNING: In a purely client-side app, a determined hacker can decompile this.
 // However, this prevents casual piracy and requires the "cracker" to understand coding.
-const SECRET_SALT = "ZAP_CATALOG_2024_MASTER_KEY_#9921"; // Change this to your own secret phrase!
+
+// Exporting so the Admin Page can use it to generate keys
+export const SECRET_SALT = "ZAP_CATALOG_2024_MASTER_KEY_#9921"; // Change this to your own secret phrase!
 
 export const generateSignature = async (email: string): Promise<string> => {
   const encoder = new TextEncoder();

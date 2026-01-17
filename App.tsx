@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { ProductManager } from './pages/ProductManager';
 import { Config } from './pages/Config';
 import { CustomerCatalog } from './pages/CustomerCatalog';
+import { AdminMaster } from './pages/AdminMaster';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: React.PropsWithChildren) => {
@@ -25,6 +26,10 @@ const App: React.FC = () => {
         {/* Public Customer Route */}
         {/* URL will look like: mysite.com/#/c?d=compressed_data */}
         <Route path="/c" element={<CustomerCatalog />} />
+
+        {/* SECRET ADMIN ROUTE */}
+        {/* Access this URL to generate keys: yoursite.com/#/admin-master */}
+        <Route path="/admin-master" element={<AdminMaster />} />
         
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
