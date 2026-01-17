@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, AlertCircle, Image as ImageIcon, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, Edit2, AlertCircle, Image as ImageIcon, Search, Camera } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { Product } from '../types';
 import { getItem, setItem } from '../lib/storage';
+import { processImage } from '../lib/image-utils';
 
 const MAX_PRODUCTS = 40; 
 
@@ -10,6 +11,7 @@ export const ProductManager: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form State
   const [name, setName] = useState('');
@@ -82,6 +84,18 @@ export const ProductManager: React.FC = () => {
     setStock('');
     setEditingId(null);
     setIsFormOpen(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await processImage(file);
+        setImageUrl(base64);
+      } catch (err) {
+        alert("Erro ao processar imagem.");
+      }
+    }
   };
 
   return (
@@ -172,10 +186,37 @@ export const ProductManager: React.FC = () => {
               <input value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Ex: Lanches, Bebidas..." />
             </div>
 
+            {/* Image Upload */}
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><ImageIcon size={12}/> Link da Imagem</label>
-              <input type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="https://..." />
-              <p className="text-[10px] text-gray-400 mt-1">Use um link público de imagem (ex: Imgur)</p>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                <ImageIcon size={12}/> Imagem
+              </label>
+              
+              <div 
+                className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 hover:border-brand-500 transition"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {imageUrl ? (
+                   <div className="relative h-32 w-full">
+                       <img src={imageUrl} alt="Preview" className="h-full w-full object-contain mx-auto" />
+                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-bold opacity-0 hover:opacity-100 transition">
+                           Trocar Foto
+                       </div>
+                   </div>
+                ) : (
+                    <div className="py-4 text-gray-400">
+                        <Camera size={32} className="mx-auto mb-2" />
+                        <span className="text-sm">Tirar foto ou escolher da galeria</span>
+                    </div>
+                )}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+              </div>
             </div>
 
             <div>
