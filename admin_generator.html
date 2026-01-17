@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Licenças - ZapCatalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // ESTA CHAVE DEVE SER IDÊNTICA À QUE ESTÁ EM lib/security.ts NO SEU APP
+        const SECRET_SALT = "ZAP_CATALOG_2024_MASTER_KEY_#9921"; 
+
+        async function generateKey() {
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            if (!email) {
+                alert('Digite um e-mail');
+                return;
+            }
+
+            const encoder = new TextEncoder();
+            const data = encoder.encode(email + SECRET_SALT);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const key = hashHex.substring(0, 16); // Pegamos os primeiros 16 caracteres
+
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('licenseKey').value = key;
+            document.getElementById('emailDisplay').innerText = email;
+            
+            // Generate Copy text
+            const msg = `Olá!\n\nObrigado por comprar o ZapCatalog.\n\nSeus dados de acesso:\nE-mail: ${email}\nChave: ${key}\n\nAcesse em: https://seusite.com`;
+            document.getElementById('copyText').value = msg;
+        }
+
+        function copyToClipboard() {
+            const copyText = document.getElementById("copyText");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(copyText.value);
+            alert("Texto copiado! Agora envie para o cliente.");
+        }
+    </script>
+</head>
+<body class="bg-slate-800 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="bg-slate-900 p-8 rounded-2xl shadow-xl max-w-md w-full border border-slate-700">
+        <h1 class="text-2xl font-bold mb-6 text-emerald-400">Gerador Admin (Uso Interno)</h1>
+        
+        <div class="mb-6">
+            <label class="block text-sm text-slate-400 mb-2">E-mail do Comprador (Hotmart)</label>
+            <input type="email" id="email" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-emerald-500 outline-none" placeholder="cliente@email.com">
+        </div>
+
+        <button onclick="generateKey()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded transition">
+            Gerar Licença
+        </button>
+
+        <div id="result" class="hidden mt-8 pt-8 border-t border-slate-700">
+            <p class="text-sm text-slate-400 mb-1">Chave gerada para: <span id="emailDisplay" class="text-white font-bold"></span></p>
+            <input type="text" id="licenseKey" readonly class="w-full bg-black text-emerald-400 font-mono text-xl p-3 rounded mb-4 text-center tracking-widest border border-emerald-900">
+            
+            <label class="block text-sm text-slate-400 mb-2">Mensagem Pronta para Envio:</label>
+            <textarea id="copyText" rows="6" class="w-full bg-slate-800 text-xs text-slate-300 p-3 rounded mb-2 font-mono"></textarea>
+            
+            <button onclick="copyToClipboard()" class="w-full bg-slate-700 hover:bg-slate-600 text-sm py-2 rounded">
+                Copiar Mensagem
+            </button>
+        </div>
+        
+        <p class="mt-6 text-xs text-center text-slate-500">
+            Mantenha o SECRET_SALT seguro. Não compartilhe este arquivo HTML.
+        </p>
+    </div>
+</body>
+</html>

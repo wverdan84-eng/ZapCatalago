@@ -7,9 +7,9 @@ import { Config } from './pages/Config';
 import { CustomerCatalog } from './pages/CustomerCatalog';
 
 // Protected Route Wrapper
-const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
+const ProtectedRoute = ({ children }: React.PropsWithChildren) => {
   const isActivated = !!localStorage.getItem('zapcatalog_license');
-  return isActivated ? children : <Navigate to="/" replace />;
+  return isActivated ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 const App: React.FC = () => {
