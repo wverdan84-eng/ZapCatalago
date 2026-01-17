@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, CheckCircle, Smartphone, Mail, Key } from 'lucide-react';
+import { Lock, CheckCircle, Smartphone, Mail, Key, AlertOctagon } from 'lucide-react';
 import { verifyLicense } from '../lib/security';
 
 export const Activation: React.FC = () => {
@@ -11,35 +11,43 @@ export const Activation: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    checkExistingLicense();
+  }, []);
+
+  const checkExistingLicense = async () => {
     const savedLicense = localStorage.getItem('zapcatalog_license');
-    if (savedLicense) {
-      navigate('/dashboard');
+    const savedEmail = localStorage.getItem('merchant_email');
+    
+    if (savedLicense && savedEmail) {
+      // Re-verify on load to ensure subscription hasn't expired
+      const result = await verifyLicense(savedEmail, savedLicense);
+      if (result.valid) {
+        navigate('/dashboard');
+      } else if (result.expired) {
+        setError('Sua licença expirou. Entre em contato para renovar.');
+        localStorage.removeItem('zapcatalog_license');
+      }
     }
-  }, [navigate]);
+  };
 
   const handleActivate = async () => {
     setError('');
     setLoading(true);
 
-    // Basic validation
-    if (!email.includes('@') || licenseKey.length < 8) {
-      setError('Por favor, insira um e-mail e chave válidos.');
+    if (!email.includes('@') || licenseKey.length < 5) {
+      setError('Dados inválidos.');
       setLoading(false);
       return;
     }
 
-    // Cryptographic Verification
-    const isValid = await verifyLicense(email, licenseKey);
+    const result = await verifyLicense(email, licenseKey);
 
-    if (isValid) {
-      // Save license and email
-      localStorage.setItem('zapcatalog_license', `active|${Date.now()}|${email}`);
-      // Store email in config for convenience later if needed
+    if (result.valid) {
+      localStorage.setItem('zapcatalog_license', licenseKey);
       localStorage.setItem('merchant_email', email);
-      
       navigate('/dashboard');
     } else {
-      setError('Chave de licença inválida para este e-mail.');
+      setError(result.message || 'Chave inválida.');
     }
     setLoading(false);
   };
@@ -55,7 +63,7 @@ export const Activation: React.FC = () => {
         
         <h1 className="text-2xl font-bold text-center mb-2">ZapCatalog</h1>
         <p className="text-gray-500 text-center mb-6 text-sm">
-          Ativação única. Use o e-mail cadastrado na compra.
+          Ativação do Produto
         </p>
 
         <div className="space-y-4">
@@ -67,30 +75,30 @@ export const Activation: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="exemplo@email.com"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
               />
               <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Chave de Acesso</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Chave de Licença</label>
             <div className="relative">
               <input
                 type="text"
                 value={licenseKey}
                 onChange={(e) => setLicenseKey(e.target.value)}
-                placeholder="Cole sua chave aqui"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none font-mono uppercase"
+                placeholder="XXXX-XXXXXXXXXXXX"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none font-mono uppercase"
               />
               <Key className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
             </div>
           </div>
           
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
-              <Lock size={16} />
-              {error}
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2">
+              <AlertOctagon size={16} className="mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -102,19 +110,16 @@ export const Activation: React.FC = () => {
             {loading ? 'Verificando...' : (
               <>
                 <CheckCircle size={20} />
-                Liberar Acesso
+                Ativar Loja
               </>
             )}
           </button>
         </div>
 
         <div className="mt-8 border-t pt-4">
-          <p className="text-xs text-center text-gray-400">
-            Dúvidas? Entre em contato com o suporte informando seu e-mail de compra.
-          </p>
-          <div className="mt-6 flex justify-center">
+          <div className="mt-2 flex justify-center">
             <Link to="/admin-master" className="text-[10px] text-gray-300 hover:text-brand-600 transition-colors uppercase tracking-widest font-bold">
-              Área Administrativa
+              Acesso Admin (Dono)
             </Link>
           </div>
         </div>

@@ -3,7 +3,9 @@ export interface Product {
   name: string;
   price: number;
   description: string;
-  imageUrl?: string; // Optional: In a real PWA, would be base64 or external URL
+  imageUrl?: string; 
+  category?: string;
+  stock?: number;
   available: boolean;
 }
 
@@ -12,6 +14,13 @@ export interface StoreConfig {
   phone: string; // Formatting: 5511999999999
   currency: string;
   themeColor: string;
+  logoUrl?: string;
+  instagram?: string;
+  address?: string;
+  openTime?: string; // "09:00"
+  closeTime?: string; // "18:00"
+  allowPickup?: boolean;
+  allowDelivery?: boolean;
 }
 
 export interface StoreData {
@@ -21,4 +30,10 @@ export interface StoreData {
 
 export interface CartItem extends Product {
   quantity: number;
+}
+
+export interface LicenseData {
+  email: string;
+  expirationDate: number; // Timestamp
+  signature: string;
 }

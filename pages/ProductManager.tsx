@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, AlertCircle, Image as ImageIcon, Search } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { Product } from '../types';
 import { getItem, setItem } from '../lib/storage';
 
-const MAX_PRODUCTS = 30; // Soft limit for URL size safety
+const MAX_PRODUCTS = 40; 
 
 export const ProductManager: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -15,6 +15,9 @@ export const ProductManager: React.FC = () => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [category, setCategory] = useState('');
+  const [stock, setStock] = useState('');
 
   useEffect(() => {
     loadProducts();
@@ -33,6 +36,9 @@ export const ProductManager: React.FC = () => {
       name,
       price: parseFloat(price.replace(',', '.')),
       description,
+      imageUrl: imageUrl || undefined,
+      category: category || 'Geral',
+      stock: stock ? parseInt(stock) : undefined,
       available: true
     };
 
@@ -60,6 +66,9 @@ export const ProductManager: React.FC = () => {
     setName(p.name);
     setPrice(p.price.toString());
     setDescription(p.description);
+    setImageUrl(p.imageUrl || '');
+    setCategory(p.category || '');
+    setStock(p.stock ? p.stock.toString() : '');
     setEditingId(p.id);
     setIsFormOpen(true);
   };
@@ -68,6 +77,9 @@ export const ProductManager: React.FC = () => {
     setName('');
     setPrice('');
     setDescription('');
+    setImageUrl('');
+    setCategory('');
+    setStock('');
     setEditingId(null);
     setIsFormOpen(false);
   };
@@ -75,76 +87,105 @@ export const ProductManager: React.FC = () => {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Seus Produtos</h2>
-        <span className="text-sm bg-gray-200 px-3 py-1 rounded-full text-gray-600 font-medium">
-          {products.length} / {MAX_PRODUCTS}
+        <h2 className="text-2xl font-bold text-gray-800">Catálogo</h2>
+        <span className="text-xs bg-gray-200 px-3 py-1 rounded-full text-gray-600 font-bold">
+          {products.length} itens
         </span>
       </div>
-
-      {products.length >= MAX_PRODUCTS && !isFormOpen && (
-        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4 flex items-start gap-3">
-          <AlertCircle className="text-yellow-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-yellow-800">
-            Você atingiu o limite recomendado de produtos. Mais itens podem deixar o QR Code muito denso e difícil de ler.
-          </p>
-        </div>
-      )}
 
       {!isFormOpen ? (
         <div className="space-y-4">
           <button
             onClick={() => setIsFormOpen(true)}
             disabled={products.length >= MAX_PRODUCTS}
-            className="w-full py-4 bg-brand-50 border-2 border-dashed border-brand-300 text-brand-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-700 shadow-md transition-all"
           >
-            <Plus /> Adicionar Novo Produto
+            <Plus /> Adicionar Produto
           </button>
 
           <div className="grid gap-3">
             {products.map(p => (
-              <div key={p.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold text-gray-900">{p.name}</h3>
-                  <p className="text-brand-600 font-bold">R$ {p.price.toFixed(2)}</p>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">{p.description}</p>
+              <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
+                {/* Thumbnail */}
+                <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden relative">
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      <ImageIcon size={24} />
+                    </div>
+                  )}
+                  {p.stock !== undefined && p.stock < 5 && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-[10px] text-center font-bold">
+                      {p.stock === 0 ? 'ESGOTADO' : 'POUCO ESTOQUE'}
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleEdit(p)} className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100">
-                    <Edit2 size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(p.id)} className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
-                    <Trash2 size={18} />
-                  </button>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{p.category || 'Geral'}</span>
+                      <h3 className="font-bold text-gray-900 truncate">{p.name}</h3>
+                    </div>
+                    <span className="font-bold text-brand-600">R$ {p.price.toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">{p.description}</p>
+                  
+                  <div className="flex justify-end gap-3 mt-2">
+                    <button onClick={() => handleEdit(p)} className="text-blue-600 text-xs font-bold flex items-center gap-1">
+                      <Edit2 size={12} /> Editar
+                    </button>
+                    <button onClick={() => handleDelete(p.id)} className="text-red-600 text-xs font-bold flex items-center gap-1">
+                      <Trash2 size={12} /> Excluir
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
-            
-            {products.length === 0 && (
-              <div className="text-center py-10 text-gray-400">
-                Nenhum produto cadastrado ainda.
-              </div>
-            )}
           </div>
         </div>
       ) : (
-        <div className="bg-white p-6 rounded-xl shadow-lg animate-fade-in-up">
-          <h3 className="font-bold text-lg mb-4">{editingId ? 'Editar Produto' : 'Novo Produto'}</h3>
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">{editingId ? 'Editar Produto' : 'Novo Produto'}</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Nome</label>
-              <input required value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Ex: X-Bacon" />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Produto</label>
+                <input required value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Ex: X-Bacon" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Preço (R$)</label>
+                <input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="0.00" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estoque (Opcional)</label>
+                <input type="number" value={stock} onChange={e => setStock(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Infinito" />
+              </div>
             </div>
+
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Preço</label>
-              <input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="0.00" />
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoria</label>
+              <input value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Ex: Lanches, Bebidas..." />
             </div>
+
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Descrição</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><ImageIcon size={12}/> Link da Imagem</label>
+              <input type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="https://..." />
+              <p className="text-[10px] text-gray-400 mt-1">Use um link público de imagem (ex: Imgur)</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Ingredientes, detalhes..." rows={3} />
             </div>
-            <div className="flex gap-3 pt-4">
-              <button type="button" onClick={resetForm} className="flex-1 py-3 text-gray-600 font-bold bg-gray-100 rounded-lg">Cancelar</button>
-              <button type="submit" className="flex-1 py-3 text-white font-bold bg-brand-600 rounded-lg hover:bg-brand-700">Salvar</button>
+
+            <div className="flex gap-3 pt-4 border-t mt-4">
+              <button type="button" onClick={resetForm} className="flex-1 py-3 text-gray-600 font-bold bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              <button type="submit" className="flex-1 py-3 text-white font-bold bg-brand-600 rounded-lg hover:bg-brand-700">Salvar Produto</button>
             </div>
           </form>
         </div>
