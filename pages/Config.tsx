@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Store as StoreIcon, Clock, MapPin, Instagram, Camera, Share2, Copy, Download, ExternalLink } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Save, Store as StoreIcon, Clock, MapPin, Instagram, Camera, Share2, Copy, Download, ExternalLink, ArrowRight, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Layout } from '../components/Layout';
 import { StoreConfig, Product } from '../types';
@@ -8,6 +9,10 @@ import { processImage } from '../lib/image-utils';
 import { generateStoreLink } from '../lib/url-engine';
 
 export const Config: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const isSetupMode = searchParams.get('setup') === 'true';
+  const navigate = useNavigate();
+  
   const [config, setConfig] = useState<StoreConfig>({
     storeName: '',
     phone: '',
@@ -24,7 +29,6 @@ export const Config: React.FC = () => {
   
   // State for Sharing
   const [storeLink, setStoreLink] = useState('');
-  const [productsCount, setProductsCount] = useState(0);
   const qrRef = useRef<SVGSVGElement>(null);
 
   const [loading, setLoading] = useState(false);
@@ -41,7 +45,6 @@ export const Config: React.FC = () => {
     
     // Load products only to generate the correct link
     const products = await getItem<Product[]>('store_products') || [];
-    setProductsCount(products.length);
     
     if (data) {
         updateShareLink(data, products);
@@ -57,16 +60,29 @@ export const Config: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!config.storeName || !config.phone) {
+      alert("Nome da loja e WhatsApp são obrigatórios!");
+      return;
+    }
+
     setLoading(true);
     await setItem('store_config', config);
     
-    // Update link after save
+    // Update link logic
     const products = await getItem<Product[]>('store_products') || [];
     updateShareLink(config, products);
 
     setLoading(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+
+    if (isSetupMode) {
+      // If in setup mode, redirect to Products manager after saving
+      setTimeout(() => {
+        navigate('/dashboard/products');
+      }, 1000);
+    } else {
+      setTimeout(() => setSaved(false), 3000);
+    }
   };
 
   const handleChange = (field: keyof StoreConfig, value: any) => {
@@ -85,7 +101,6 @@ export const Config: React.FC = () => {
     }
   };
 
-  // Share Actions
   const handleDownloadQR = () => {
     const svg = qrRef.current;
     if (!svg) return;
@@ -124,28 +139,35 @@ export const Config: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout hideNav={isSetupMode} title={isSetupMode ? "Vamos criar sua Loja" : "Configurações"}>
       <div className="space-y-6 mb-24">
         
+        {isSetupMode && (
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-blue-800 text-sm mb-4 leading-relaxed">
+            <strong>Bem-vindo!</strong> Para começar, configure os detalhes da sua loja abaixo. 
+            Você só precisa fazer isso uma vez. Depois, vamos adicionar seus produtos.
+          </div>
+        )}
+
         {/* Identidade Visual */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
-            <StoreIcon className="text-brand-600" size={20} /> Identidade
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-bold mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-wide text-xs">
+            <StoreIcon className="text-brand-600" size={16} /> Identidade Visual
           </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Logo Upload */}
-            <div className="flex justify-center mb-4">
+            <div className="flex flex-col items-center justify-center mb-2">
               <div 
-                className="relative w-24 h-24 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer hover:border-brand-500 transition"
+                className="relative w-28 h-28 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer hover:border-brand-500 transition group"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {config.logoUrl ? (
                   <img src={config.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="text-center text-gray-400">
-                    <Camera size={24} className="mx-auto mb-1" />
-                    <span className="text-[10px]">Logo</span>
+                  <div className="text-center text-gray-400 group-hover:text-brand-500 transition">
+                    <Camera size={28} className="mx-auto mb-1" />
+                    <span className="text-[10px] font-bold uppercase">Adicionar Logo</span>
                   </div>
                 )}
                 <input 
@@ -159,24 +181,24 @@ export const Config: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Loja</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome da Loja *</label>
               <input
                 type="text"
                 value={config.storeName}
                 onChange={(e) => handleChange('storeName', e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                placeholder="Ex: Pizzaria do João"
+                className="w-full p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-gray-800 font-medium"
+                placeholder="Ex: Hamburgueria do Zé"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cor do Tema</label>
-              <div className="flex gap-2 overflow-x-auto py-2">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Cor Principal</label>
+              <div className="flex gap-3 overflow-x-auto py-1 no-scrollbar">
                 {['#10b981', '#3b82f6', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#111827'].map(color => (
                   <button
                     key={color}
                     onClick={() => handleChange('themeColor', color)}
-                    className={`w-8 h-8 rounded-full border-2 ${config.themeColor === color ? 'border-gray-900 scale-110' : 'border-transparent'}`}
+                    className={`w-10 h-10 rounded-full shadow-sm transition-transform ${config.themeColor === color ? 'scale-110 ring-2 ring-offset-2 ring-gray-400' : 'hover:scale-105'}`}
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -186,106 +208,110 @@ export const Config: React.FC = () => {
         </div>
 
         {/* Contato e Localização */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
-            <MapPin className="text-brand-600" size={20} /> Contato
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-bold mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-wide text-xs">
+            <MapPin className="text-brand-600" size={16} /> Contato
           </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp (Somente números)</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp (Somente números) *</label>
               <input
                 type="tel"
                 value={config.phone}
                 onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, ''))}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-mono text-gray-800"
                 placeholder="5511999999999"
               />
+              <p className="text-[10px] text-gray-400 mt-1">Seus pedidos chegarão neste número.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                <Instagram size={14} /> Instagram (Sem @)
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                 Instagram
               </label>
-              <input
-                type="text"
-                value={config.instagram}
-                onChange={(e) => handleChange('instagram', e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                placeholder="minhaloja"
-              />
+              <div className="relative">
+                <span className="absolute left-3.5 top-3.5 text-gray-400">@</span>
+                <input
+                    type="text"
+                    value={config.instagram}
+                    onChange={(e) => handleChange('instagram', e.target.value)}
+                    className="w-full pl-8 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-gray-800"
+                    placeholder="usuario"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Endereço (Opcional)</label>
               <textarea
                 value={config.address}
                 onChange={(e) => handleChange('address', e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-gray-800 text-sm"
                 rows={2}
-                placeholder="Rua das Flores, 123 - Centro"
+                placeholder="Rua, Número - Bairro, Cidade"
               />
             </div>
           </div>
         </div>
 
         {/* Funcionamento */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
-            <Clock className="text-brand-600" size={20} /> Funcionamento
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-bold mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-wide text-xs">
+            <Clock className="text-brand-600" size={16} /> Horários e Serviços
           </h2>
           
-          <div className="flex gap-4 mb-4">
+          <div className="flex gap-4 mb-5">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Abre</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Abre</label>
               <input
                 type="time"
                 value={config.openTime}
                 onChange={(e) => handleChange('openTime', e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg outline-none"
+                className="w-full p-3 border border-gray-200 rounded-xl outline-none text-center font-bold text-gray-800 bg-gray-50"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha</label>
               <input
                 type="time"
                 value={config.closeTime}
                 onChange={(e) => handleChange('closeTime', e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg outline-none"
+                className="w-full p-3 border border-gray-200 rounded-xl outline-none text-center font-bold text-gray-800 bg-gray-50"
               />
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 border p-3 rounded-lg flex-1 cursor-pointer hover:bg-gray-50">
+          <div className="flex gap-3">
+            <label className={`flex items-center justify-center gap-2 border p-3 rounded-xl flex-1 cursor-pointer transition-all ${config.allowDelivery ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-gray-200 text-gray-400'}`}>
               <input
                 type="checkbox"
                 checked={config.allowDelivery}
                 onChange={(e) => handleChange('allowDelivery', e.target.checked)}
-                className="w-5 h-5 text-brand-600 rounded"
+                className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
               />
-              <span className="text-sm font-medium">Faz Entrega</span>
+              <span className="text-xs font-bold uppercase">Entrega</span>
             </label>
-            <label className="flex items-center gap-2 border p-3 rounded-lg flex-1 cursor-pointer hover:bg-gray-50">
+            <label className={`flex items-center justify-center gap-2 border p-3 rounded-xl flex-1 cursor-pointer transition-all ${config.allowPickup ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-gray-200 text-gray-400'}`}>
               <input
                 type="checkbox"
                 checked={config.allowPickup}
                 onChange={(e) => handleChange('allowPickup', e.target.checked)}
-                className="w-5 h-5 text-brand-600 rounded"
+                className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
               />
-              <span className="text-sm font-medium">Retirada</span>
+              <span className="text-xs font-bold uppercase">Retirada</span>
             </label>
           </div>
         </div>
 
-        {/* Seção de Compartilhamento (Só aparece se tiver loja configurada) */}
-        {config.storeName && config.phone && (
+        {/* Seção de Compartilhamento (Oculta durante Setup) */}
+        {!isSetupMode && config.storeName && config.phone && (
             <div className="bg-indigo-900 text-white rounded-xl shadow-lg p-6 text-center">
                 <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2">
-                    <Share2 className="text-indigo-400" size={20} /> Divulgar Loja
+                    <Share2 className="text-indigo-400" size={20} /> Link da Loja
                 </h2>
                 <p className="text-indigo-200 text-xs mb-6">
-                    Use as opções abaixo para enviar seu catálogo para os clientes.
+                    Seu link está pronto para enviar.
                 </p>
 
                 <div className="bg-white p-3 rounded-xl w-fit mx-auto mb-6">
@@ -301,24 +327,17 @@ export const Config: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 mb-4">
                     <button 
                         onClick={handleCopyLink}
-                        className="bg-indigo-800 hover:bg-indigo-700 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
+                        className="bg-indigo-800 hover:bg-indigo-700 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition"
                     >
-                        <Copy size={16} /> Copiar Link
+                        <Copy size={16} /> Copiar
                     </button>
                     <button 
                         onClick={handleDownloadQR}
-                        className="bg-indigo-800 hover:bg-indigo-700 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
+                        className="bg-indigo-800 hover:bg-indigo-700 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition"
                     >
                         <Download size={16} /> Salvar QR
                     </button>
                 </div>
-
-                <button 
-                    onClick={handleShare}
-                    className="w-full bg-indigo-500 hover:bg-indigo-400 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition"
-                >
-                    <Share2 size={18} /> Compartilhar no Zap
-                </button>
 
                 <a 
                   href={storeLink} 
@@ -326,22 +345,33 @@ export const Config: React.FC = () => {
                   rel="noreferrer"
                   className="mt-6 block text-indigo-300 text-xs hover:text-white flex items-center justify-center gap-1"
                 >
-                  Testar catálogo como cliente <ExternalLink size={10} />
+                  Ver minha loja como cliente <ExternalLink size={10} />
                 </a>
             </div>
         )}
 
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 z-30 shadow-lg">
         <div className="container mx-auto max-w-lg">
           <button
             onClick={handleSave}
             disabled={loading}
-            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-2 ${saved ? 'bg-brand-700' : 'bg-brand-600 hover:bg-brand-700'}`}
+            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-2 text-lg active:scale-[0.98] ${saved ? 'bg-green-600' : 'bg-brand-600 hover:bg-brand-700'}`}
           >
-            <Save size={20} />
-            {saved ? 'Dados Salvos!' : 'Salvar Alterações'}
+            {saved ? (
+                <>
+                    <Check size={24} /> {isSetupMode ? 'Loja Criada!' : 'Salvo!'}
+                </>
+            ) : (
+                <>
+                    {isSetupMode ? (
+                        <>Criar Loja <ArrowRight size={20} /></>
+                    ) : (
+                        <><Save size={20} /> Salvar Alterações</>
+                    )}
+                </>
+            )}
           </button>
         </div>
       </div>
